@@ -10,6 +10,7 @@ import { makeFakeConfig } from '../test-utils/config.js';
 import { ApprovalMode } from '../policy/types.js';
 import type { ToolRegistry } from '../tools/tool-registry.js';
 import type { AgentRegistry } from './registry.js';
+import { AGENT_TOOL_NAME } from '../tools/tool-names.js';
 
 describe('GeneralistAgent', () => {
   beforeEach(() => {
@@ -54,6 +55,25 @@ describe('GeneralistAgent', () => {
     expect(agent.promptConfig.systemPrompt).toContain('CLI agent');
     // Ensure it's non-interactive
     expect(agent.promptConfig.systemPrompt).toContain('non-interactive');
+  });
+
+  it('should not inherit invoke_agent, so it cannot delegate to every agent', () => {
+    const config = makeFakeConfig();
+    const mockToolRegistry = {
+      getAllToolNames: () => ['tool1', AGENT_TOOL_NAME, 'tool2'],
+    } as unknown as ToolRegistry;
+    Object.defineProperty(config, 'toolRegistry', {
+      get: () => mockToolRegistry,
+    });
+    Object.defineProperty(config, 'config', {
+      get() {
+        return this;
+      },
+    });
+
+    const agent = GeneralistAgent(config);
+
+    expect(agent.toolConfig?.tools).toEqual(['tool1', 'tool2']);
   });
 
   it('should adjust its description dynamically based on the approval mode', () => {

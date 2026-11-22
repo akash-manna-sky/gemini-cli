@@ -10,6 +10,7 @@ import { getCoreSystemPrompt } from '../core/prompts.js';
 import type { LocalAgentDefinition } from './types.js';
 
 import { ApprovalMode } from '../policy/types.js';
+import { AGENT_TOOL_NAME } from '../tools/tool-names.js';
 
 const GeneralistAgentSchema = z.object({
   response: z.string().describe('The final response from the agent.'),
@@ -54,7 +55,11 @@ export const GeneralistAgent = (
     model: 'inherit',
   },
   get toolConfig() {
-    const tools = context.toolRegistry.getAllToolNames();
+    // Agent delegation is opt-in. `invoke_agent` in a `tools` list grants access
+    // to every agent, so it must not be inherited from the main registry.
+    const tools = context.toolRegistry
+      .getAllToolNames()
+      .filter((name) => name !== AGENT_TOOL_NAME);
     return {
       tools,
     };
